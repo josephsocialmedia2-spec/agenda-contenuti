@@ -1,0 +1,1014 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calendario Settimanale – Clienti + CSV Import/Export</title>
+  <style>
+    :root{
+      --bg:#0b0f17;
+      --text:#e9eef7;
+      --muted:#a9b3c7;
+      --line:rgba(255,255,255,.08);
+      --good:#24d17e;
+      --bad:#ff4d4d;
+      --shadow: 0 10px 24px rgba(0,0,0,.35);
+      --radius: 16px;
+      --focus: 0 0 0 3px rgba(106,168,255,.35);
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 700px at 20% 0%, rgba(106,168,255,.18), transparent 60%),
+                  radial-gradient(900px 500px at 100% 0%, rgba(36,209,126,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font: 14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    .wrap{
+      max-width: 1240px;
+      margin: 22px auto 40px;
+      padding: 0 14px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 1.45fr .85fr;
+    }
+    header{
+      grid-column: 1 / -1;
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+    .toprow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px 12px;
+      align-items:flex-end;
+      justify-content:space-between;
+    }
+    .brand{display:flex;gap:10px;align-items:center;min-width: 260px;}
+    .badge{
+      width:36px;height:36px;border-radius:12px;
+      background: linear-gradient(135deg, rgba(106,168,255,.9), rgba(36,209,126,.8));
+      box-shadow: 0 10px 20px rgba(0,0,0,.25);
+    }
+    h1{margin:0;font-size:18px;letter-spacing:.2px;}
+    .sub{margin:0;color:var(--muted);font-size:13px;}
+
+    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;justify-content:flex-end;}
+    .field{display:flex;flex-direction:column;gap:6px;min-width: 220px;}
+    label{color: var(--muted);font-size: 12px;}
+    input[type="text"], input[type="date"], select{
+      width:100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,.20);
+      color: var(--text);
+      outline: none;
+    }
+    input[type="text"]:focus, input[type="date"]:focus, select:focus, button:focus, textarea:focus{
+      box-shadow: var(--focus);
+      border-color: rgba(106,168,255,.55);
+      outline:none;
+    }
+
+    .btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+    button{
+      appearance:none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      transition: transform .06s ease, background .15s ease, border-color .15s ease;
+      white-space:nowrap;
+    }
+    button:hover{ background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.14);}
+    button:active{ transform: translateY(1px); }
+    .primary{
+      border-color: rgba(106,168,255,.35);
+      background: rgba(106,168,255,.16);
+    }
+    .primary:hover{
+      background: rgba(106,168,255,.22);
+      border-color: rgba(106,168,255,.55);
+    }
+    .danger{
+      border-color: rgba(255,77,77,.35);
+      background: rgba(255,77,77,.12);
+    }
+    .danger:hover{
+      background: rgba(255,77,77,.18);
+      border-color: rgba(255,77,77,.55);
+    }
+
+    .help{
+      background: rgba(255,255,255,.04);
+      border: 1px dashed rgba(255,255,255,.14);
+      border-radius: 14px;
+      padding: 12px;
+      display:flex;
+      gap:10px;
+      align-items:flex-start;
+      color: var(--muted);
+    }
+    .help .dot{
+      width:10px;height:10px;border-radius:999px;margin-top:5px;
+      background: rgba(106,168,255,.9);
+      box-shadow: 0 0 0 6px rgba(106,168,255,.12);
+      flex: 0 0 auto;
+    }
+    .help b{color: var(--text); font-weight: 650;}
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card h2{margin:0;font-size:14px;letter-spacing:.2px;}
+    .cardhead{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      background: rgba(0,0,0,.12);
+    }
+    .cardbody{padding: 12px 14px;}
+
+    .weekline{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .weekline strong{ color: var(--text); font-weight: 700; }
+
+    table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px;}
+    thead th{position: sticky;top:0;z-index:1;background: rgba(15,22,34,.92);backdrop-filter: blur(8px);}
+    th, td{border-bottom: 1px solid var(--line);border-right: 1px solid var(--line);padding: 10px;vertical-align: top;}
+    th:last-child, td:last-child{ border-right:none; }
+    tbody tr:last-child td{border-bottom:none;}
+    th.day{width:120px;text-align:left;color:var(--text);font-weight:700;}
+    th.slot{text-align:left;color:var(--muted);font-weight:650;}
+    .slotmeta{display:flex;flex-direction:column;gap:2px;}
+    .slotmeta .time{color:var(--muted);font-size:12px;}
+    .slotmeta .kind{color:var(--text);font-size:12px;font-weight:700;}
+
+    .cell{display:flex;flex-direction:column;gap:8px;min-height: 88px;}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;border:1px solid var(--line);
+      background: rgba(0,0,0,.16);width:fit-content;max-width:100%;
+    }
+    .pill .small{color:var(--muted);font-size:12px;white-space:nowrap;}
+    .pill .big{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width: 420px;}
+
+    .statusRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;}
+    .statusHint{color:var(--muted);font-size:12px;}
+    .toggle{
+      display:inline-flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;
+      border:1px solid var(--line);background: rgba(0,0,0,.14);cursor:pointer;user-select:none;
+      transition: background .15s ease, border-color .15s ease;
+    }
+    .toggle:hover{background: rgba(255,255,255,.06);border-color: rgba(255,255,255,.14);}
+    .ball{width:12px;height:12px;border-radius:999px;background: var(--bad);box-shadow: 0 0 0 6px rgba(255,77,77,.12);}
+    .done .ball{background: var(--good);box-shadow: 0 0 0 6px rgba(36,209,126,.12);}
+    .toggle .txt{font-size:12px;color:var(--muted);}
+    .done .txt{color: rgba(233,238,247,.9);font-weight:650;}
+
+    .sidebar{display:flex;flex-direction:column;gap:14px;}
+    .list{display:flex;flex-direction:column;gap:10px;max-height: 520px;overflow:auto;padding-right: 6px;}
+    .item{
+      border:1px solid var(--line);border-radius:14px;padding:10px;background: rgba(0,0,0,.14);
+      display:flex;gap:10px;align-items:flex-start;justify-content:space-between;
+    }
+    .item .left{display:flex;flex-direction:column;gap:2px;min-width:0;}
+    .item .title{font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:360px;}
+    .item .meta{color:var(--muted);font-size:12px;}
+    .tag{
+      display:inline-flex;align-items:center;gap:6px;padding:6px 9px;border-radius:999px;
+      border:1px solid var(--line);background: rgba(255,255,255,.04);
+      color: var(--muted);font-size:12px;white-space:nowrap;
+    }
+    .tag strong{color: var(--text);font-weight:750;}
+
+    textarea{
+      width:100%;min-height: 120px;resize: vertical;
+      padding: 10px 12px;border-radius: 12px;border: 1px solid var(--line);
+      background: rgba(0,0,0,.20);color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;line-height: 1.35;
+    }
+
+    .smallnote{ font-size: 12px; color: var(--muted); }
+    .grid3{display:grid;grid-template-columns: 1fr 1fr 1fr; gap:10px;}
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns: 1fr; }
+      .item .title{ max-width: 66vw; }
+      th.day{ width: 108px; }
+      .grid3{grid-template-columns: 1fr;}
+    }
+    @media (max-width: 640px){
+      th.day{ width: 96px; }
+      .controls .field{ min-width: 100%; }
+      .btns{ width:100%; justify-content:space-between; }
+      .pill .big{ max-width: 70vw; }
+    }
+  </style>
+</head>
+
+<body>
+  <!--
+  ASSUNZIONI
+  - Multi-cliente: ogni cliente ha nome, lista immobili, inizio pianificazione, stati per slot.
+  - Pianificazione immobili per cliente: sequenziale su Slot 1 (Lun–Sab) partendo dal Lunedì “inizio pianificazione”.
+  - Import CSV clienti: una colonna "Cliente" (intestazione opzionale), ogni riga crea un cliente.
+  - Export CSV (Excel-friendly): 2 file per cliente (Calendario settimana + Pianificazione immobili).
+  - Dati salvati in localStorage.
+  -->
+
+  <div class="wrap">
+    <header>
+      <div class="toprow">
+        <div class="brand">
+          <div class="badge" aria-hidden="true"></div>
+          <div>
+            <h1>Calendario Settimanale – Rotazione 4 Slot</h1>
+            <p class="sub">Multi-cliente + Import/Export CSV • Pallini rosso/verde cliccabili</p>
+          </div>
+        </div>
+
+        <div class="controls" role="group" aria-label="Impostazioni calendario">
+          <div class="field">
+            <label for="clientSelect">Cliente</label>
+            <select id="clientSelect" aria-label="Seleziona cliente"></select>
+          </div>
+
+          <div class="field">
+            <label for="clientName">Nome cliente (modifica)</label>
+            <input id="clientName" type="text" placeholder="Es. Rossi Immobiliare" autocomplete="off" />
+          </div>
+
+          <div class="field">
+            <label for="weekDate">Settimana (scegli una data, io la porto a Lunedì)</label>
+            <input id="weekDate" type="date" />
+          </div>
+
+          <div class="btns">
+            <button id="addClient" class="primary" title="Aggiungi cliente">+ Cliente</button>
+
+            <!-- IMPORT CSV CLIENTI -->
+            <input type="file" id="importClientsCSV" accept=".csv" hidden />
+            <button id="importClientsBtn" title="Carica un CSV con i nomi dei clienti">Carica CSV clienti</button>
+
+            <button id="delClient" class="danger" title="Elimina cliente selezionato">Elimina</button>
+            <button id="prevWeek" title="Settimana precedente">← Indietro</button>
+            <button id="nextWeek" title="Settimana successiva">Avanti →</button>
+            <button id="setPlanStart" class="primary" title="Usa questa settimana come inizio pianificazione immobili">Imposta inizio pianificazione</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="help" role="note" aria-label="Come usare">
+        <div class="dot" aria-hidden="true"></div>
+        <div>
+          <div><b>Come usare:</b> seleziona/crea un <b>cliente</b>, imposta la settimana, clicca i pallini per <b>DA FARE/FATTO</b>.</div>
+          <div class="smallnote">Usa <b>Carica CSV clienti</b> per creare in blocco i clienti (uno per riga nel CSV).</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- CALENDARIO -->
+    <section class="card">
+      <div class="cardhead">
+        <h2 id="titleClient">Cliente: <span class="smallnote">(non impostato)</span></h2>
+        <div class="weekline" aria-label="Settimana dal al">
+          <span>SETTIMANA DAL <strong id="weekFrom">—</strong> AL <strong id="weekTo">—</strong></span>
+          <span class="smallnote">Slot: 1 Pubblicità Sito • 2 Carosello • 3 Video Reel • 4 Video promo immobile di oggi</span>
+        </div>
+      </div>
+
+      <div class="cardbody" style="border-bottom:1px solid var(--line); background: rgba(0,0,0,.06);">
+        <div class="grid3">
+          <button id="exportWeekCSV" class="primary">Export CSV • Calendario settimana</button>
+          <button id="exportPlanCSV">Export CSV • Pianificazione immobili</button>
+          <button id="exportClientBundle">Backup cliente (JSON)</button>
+        </div>
+        <div class="smallnote" style="margin-top:8px;">
+          CSV: colonne complete (cliente, data, slot, orario, contenuto, immobile, stato).
+        </div>
+      </div>
+
+      <div style="padding:0;">
+        <table aria-label="Calendario settimanale a 4 slot">
+          <thead>
+            <tr>
+              <th class="day">GIORNO</th>
+              <th class="slot"><div class="slotmeta"><span class="kind">SLOT 1</span><span class="time">Orari variabili</span></div></th>
+              <th class="slot"><div class="slotmeta"><span class="kind">SLOT 2</span><span class="time">Orari variabili</span></div></th>
+              <th class="slot"><div class="slotmeta"><span class="kind">SLOT 3</span><span class="time">Orari variabili</span></div></th>
+              <th class="slot"><div class="slotmeta"><span class="kind">SLOT 4</span><span class="time">Orari variabili</span></div></th>
+            </tr>
+          </thead>
+          <tbody id="calBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <section class="card">
+        <div class="cardhead">
+          <h2>Pianificazione immobili (Slot 1 – Pubblicità Sito)</h2>
+          <span class="tag" title="La pianificazione parte dal Lunedì impostato come inizio">
+            Inizio: <strong id="planStartBadge">—</strong>
+          </span>
+        </div>
+        <div class="cardbody">
+          <div class="smallnote" style="margin-bottom:10px;">
+            Ogni immobile è assegnato a un giorno (Lun–Sab) nello <b>Slot 1</b>. Qui vedi tutta la rotazione del cliente.
+          </div>
+          <div class="list" id="propertyList" aria-label="Lista immobili programmati"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="cardhead">
+          <h2>Elenco immobili (per questo cliente)</h2>
+          <button id="resetProps" class="danger" title="Ripristina elenco demo (50 immobili)">Reset</button>
+        </div>
+        <div class="cardbody">
+          <div class="smallnote" style="margin-bottom:8px;">
+            Modifica i nomi: <b>uno per riga</b>. Poi clicca “Salva elenco”.
+          </div>
+          <textarea id="propsTextarea" aria-label="Elenco immobili (uno per riga)"></textarea>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px;">
+            <button id="saveProps" class="primary">Salva elenco</button>
+            <button id="importClientBundle">Importa Backup (JSON)</button>
+          </div>
+          <div class="smallnote" style="margin-top:8px;">
+            Tip: fai “Backup cliente (JSON)” prima di grosse modifiche.
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <script>
+    // ------------------------------
+    // CONFIG
+    // ------------------------------
+    const DAYS = [
+      { key: "LUNEDI", label: "LUNEDÌ", times: ["08:00–10:00","10:00–14:00","14:00–18:00","18:00–22:00"] },
+      { key: "MARTEDI", label: "MARTEDÌ", times: ["09:00–11:00","11:00–15:00","15:00–19:00","19:00–23:00"] },
+      { key: "MERCOLEDI", label: "MERCOLEDÌ", times: ["08:00–10:00","10:00–14:00","14:00–18:00","18:00–22:00"] },
+      { key: "GIOVEDI", label: "GIOVEDÌ", times: ["08:00–10:00","10:00–14:00","14:00–18:00","18:00–22:00"] },
+      { key: "VENERDI", label: "VENERDÌ", times: ["09:00–11:00","11:00–15:00","15:00–19:00","19:00–23:00"] },
+      { key: "SABATO", label: "SABATO", times: ["08:00–10:00","10:00–14:00","14:00–18:00","18:00–22:00"] },
+    ];
+    const SLOT_KIND = {
+      1: "Pubblicità Sito",
+      2: "Carosello",
+      3: "Video Reel",
+      4: "Video promo immobile di oggi"
+    };
+
+    // ------------------------------
+    // STORAGE (multi-cliente)
+    // ------------------------------
+    const LS = {
+      app: "cal_app_v3" // { activeClientId, weekMondayISO, clients: { [id]: { name, planStartMondayISO, properties[], statusByWeek{} } } }
+    };
+
+    // ------------------------------
+    // DOM
+    // ------------------------------
+    const elClientSelect = document.getElementById("clientSelect");
+    const elClientName = document.getElementById("clientName");
+    const elWeekDate = document.getElementById("weekDate");
+    const elTitleClient = document.getElementById("titleClient");
+    const elWeekFrom = document.getElementById("weekFrom");
+    const elWeekTo = document.getElementById("weekTo");
+    const elPlanStartBadge = document.getElementById("planStartBadge");
+    const elCalBody = document.getElementById("calBody");
+    const elPropertyList = document.getElementById("propertyList");
+    const elPropsTextarea = document.getElementById("propsTextarea");
+
+    const elAddClient = document.getElementById("addClient");
+    const elDelClient = document.getElementById("delClient");
+    const elPrevWeek = document.getElementById("prevWeek");
+    const elNextWeek = document.getElementById("nextWeek");
+    const elSetPlanStart = document.getElementById("setPlanStart");
+
+    const elSaveProps = document.getElementById("saveProps");
+    const elResetProps = document.getElementById("resetProps");
+
+    const elExportWeekCSV = document.getElementById("exportWeekCSV");
+    const elExportPlanCSV = document.getElementById("exportPlanCSV");
+    const elExportClientBundle = document.getElementById("exportClientBundle");
+    const elImportClientBundle = document.getElementById("importClientBundle");
+
+    // IMPORT CSV CLIENTI
+    const elImportClientsBtn = document.getElementById("importClientsBtn");
+    const elImportClientsCSV = document.getElementById("importClientsCSV");
+
+    // ------------------------------
+    // Helpers date
+    // ------------------------------
+    const pad2 = n => String(n).padStart(2,"0");
+    const toISODate = (d) => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    const formatIT = (d) => `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${d.getFullYear()}`;
+
+    function cloneDate(d){ return new Date(d.getTime()); }
+    function startOfMonday(date){
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = d.getDay(); // 0=Sun,1=Mon...
+      const diff = (day === 0 ? -6 : 1 - day);
+      d.setDate(d.getDate() + diff);
+      d.setHours(0,0,0,0);
+      return d;
+    }
+    function addDays(d, n){ const x = cloneDate(d); x.setDate(x.getDate()+n); return x; }
+    function addWeeks(d, n){ return addDays(d, n*7); }
+    function weekKey(monday){ return toISODate(monday); }
+
+    // ------------------------------
+    // App state
+    // ------------------------------
+    function defaultProperties(){
+      return Array.from({length:50}, (_,i)=> `Immobile #${i+1}`);
+    }
+    function uid(){
+      return "c_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
+    }
+
+    let app = null;
+    let currentMonday = startOfMonday(new Date());
+    let activeClientId = null;
+
+    function safeJsonParse(str, fallback){
+      try { return JSON.parse(str); } catch { return fallback; }
+    }
+
+    function loadApp(){
+      const raw = localStorage.getItem(LS.app);
+      app = safeJsonParse(raw || "null", null);
+
+      if(!app || typeof app !== "object" || !app.clients){
+        const firstId = uid();
+        app = {
+          activeClientId: firstId,
+          weekMondayISO: toISODate(startOfMonday(new Date())),
+          clients: {
+            [firstId]: {
+              name: "Cliente 1",
+              planStartMondayISO: toISODate(startOfMonday(new Date())),
+              properties: defaultProperties(),
+              statusByWeek: {}
+            }
+          }
+        };
+      }
+
+      activeClientId = app.activeClientId;
+      currentMonday = startOfMonday(new Date(app.weekMondayISO));
+    }
+
+    function saveApp(){
+      app.activeClientId = activeClientId;
+      app.weekMondayISO = toISODate(currentMonday);
+      localStorage.setItem(LS.app, JSON.stringify(app));
+    }
+
+    function getClient(){
+      return app.clients[activeClientId];
+    }
+
+    // ------------------------------
+    // Status (per cliente)
+    // ------------------------------
+    function getSlotStatusForClient(client, monday, dayKey, slotNum){
+      const wk = weekKey(monday);
+      const key = `${dayKey}-S${slotNum}`;
+      return client.statusByWeek?.[wk]?.[key] || "todo";
+    }
+
+    function toggleSlotStatusForClient(client, monday, dayKey, slotNum){
+      const wk = weekKey(monday);
+      client.statusByWeek[wk] = client.statusByWeek[wk] || {};
+      const key = `${dayKey}-S${slotNum}`;
+      const cur = client.statusByWeek[wk][key] || "todo";
+      client.statusByWeek[wk][key] = (cur === "done") ? "todo" : "done";
+    }
+
+    // ------------------------------
+    // Pianificazione immobili (per cliente)
+    // ------------------------------
+    function scheduleForProperty(client, index){
+      const planStartMonday = startOfMonday(new Date(client.planStartMondayISO));
+      const perWeek = DAYS.length; // 6 (Lun-Sab)
+      const weekOffset = Math.floor(index / perWeek);
+      const dayIndex = index % perWeek;
+      const date = addDays(addWeeks(planStartMonday, weekOffset), dayIndex);
+      const day = DAYS[dayIndex];
+      const slotTime = day.times[0];
+      return { date, day, slotTime, weekOffset, dayIndex, planStartMonday };
+    }
+
+    function propertyAssignedToDay(client, monday, dayIndex){
+      const planStartMonday = startOfMonday(new Date(client.planStartMondayISO));
+      const diffDays = Math.round((startOfMonday(monday).getTime() - planStartMonday.getTime()) / (1000*60*60*24));
+      const weeksFromStart = Math.floor(diffDays / 7);
+      const absoluteIndex = weeksFromStart * DAYS.length + dayIndex;
+      if(absoluteIndex < 0 || absoluteIndex >= client.properties.length) return null;
+      return { name: client.properties[absoluteIndex], idx: absoluteIndex };
+    }
+
+    // ------------------------------
+    // Rendering
+    // ------------------------------
+    function renderClientSelect(){
+      const ids = Object.keys(app.clients);
+      elClientSelect.innerHTML = "";
+      ids.forEach(id => {
+        const opt = document.createElement("option");
+        opt.value = id;
+        opt.textContent = app.clients[id].name || "(senza nome)";
+        elClientSelect.appendChild(opt);
+      });
+      if(!app.clients[activeClientId]){
+        activeClientId = ids[0] || null;
+      }
+      elClientSelect.value = activeClientId;
+    }
+
+    function renderHeader(){
+      const client = getClient();
+
+      elClientName.value = client.name || "";
+      elTitleClient.innerHTML = client.name
+        ? `Cliente: <span style="font-weight:800">${escapeHtml(client.name)}</span>`
+        : `Cliente: <span class="smallnote">(non impostato)</span>`;
+
+      const from = cloneDate(currentMonday);
+      const to = addDays(currentMonday, 6);
+      elWeekFrom.textContent = formatIT(from);
+      elWeekTo.textContent = formatIT(to);
+
+      elPlanStartBadge.textContent = formatIT(startOfMonday(new Date(client.planStartMondayISO)));
+
+      elWeekDate.value = toISODate(currentMonday);
+      elPropsTextarea.value = client.properties.join("\n");
+    }
+
+    function renderCalendar(){
+      const client = getClient();
+      elCalBody.innerHTML = "";
+
+      DAYS.forEach((day, dayIndex) => {
+        const tr = document.createElement("tr");
+
+        const th = document.createElement("th");
+        th.className = "day";
+        const date = addDays(currentMonday, dayIndex);
+        th.innerHTML = `<div style="display:flex;flex-direction:column;gap:2px;">
+          <div>${day.label}</div>
+          <div style="color:var(--muted);font-size:12px;">${formatIT(date)}</div>
+        </div>`;
+        tr.appendChild(th);
+
+        for(let slot=1; slot<=4; slot++){
+          const td = document.createElement("td");
+          const status = getSlotStatusForClient(client, currentMonday, day.key, slot);
+
+          const cell = document.createElement("div");
+          cell.className = "cell";
+
+          const pill = document.createElement("div");
+          pill.className = "pill";
+
+          const time = day.times[slot-1];
+          let content = SLOT_KIND[slot];
+
+          if(slot === 1){
+            const assigned = propertyAssignedToDay(client, currentMonday, dayIndex);
+            content = assigned ? `Pubblicità Sito • ${assigned.name}` : `Pubblicità Sito • (nessun immobile)`;
+          }
+
+          pill.innerHTML = `
+            <span class="small">${escapeHtml(time)}</span>
+            <span class="big" title="${escapeHtml(content)}">${escapeHtml(content)}</span>
+          `;
+          cell.appendChild(pill);
+
+          const row = document.createElement("div");
+          row.className = "statusRow";
+
+          const hint = document.createElement("div");
+          hint.className = "statusHint";
+          hint.textContent = "Stato:";
+
+          const toggle = document.createElement("button");
+          toggle.type = "button";
+          toggle.className = "toggle" + (status === "done" ? " done" : "");
+          toggle.setAttribute("aria-pressed", status === "done" ? "true" : "false");
+          toggle.setAttribute("title", "Clicca per cambiare stato (DA FARE / FATTO)");
+          toggle.innerHTML = `
+            <span class="ball" aria-hidden="true"></span>
+            <span class="txt">${status === "done" ? "FATTO" : "DA FARE"}</span>
+          `;
+          toggle.addEventListener("click", () => {
+            toggleSlotStatusForClient(client, currentMonday, day.key, slot);
+            saveApp();
+            render();
+          });
+
+          row.appendChild(hint);
+          row.appendChild(toggle);
+          cell.appendChild(row);
+
+          td.appendChild(cell);
+          tr.appendChild(td);
+        }
+
+        elCalBody.appendChild(tr);
+      });
+    }
+
+    function renderPropertyScheduleList(){
+      const client = getClient();
+      elPropertyList.innerHTML = "";
+
+      client.properties.forEach((name, idx) => {
+        const s = scheduleForProperty(client, idx);
+        const wkMon = startOfMonday(s.date);
+        const status = getSlotStatusForClient(client, wkMon, s.day.key, 1);
+
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <div class="left">
+            <div class="title" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+            <div class="meta">
+              Pubblicità: <b>${s.day.label}</b> • ${formatIT(s.date)} • <span>${escapeHtml(s.slotTime)}</span>
+            </div>
+          </div>
+          <div class="tag" title="Stato dello Slot 1 in quel giorno">
+            <span style="display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:999px;background:${status==="done" ? "var(--good)" : "var(--bad)"}"></span>
+              <strong>${status==="done" ? "FATTO" : "DA FARE"}</strong>
+            </span>
+          </div>
+        `;
+        elPropertyList.appendChild(div);
+      });
+    }
+
+    function render(){
+      renderClientSelect();
+      renderHeader();
+      renderCalendar();
+      renderPropertyScheduleList();
+      saveApp();
+    }
+
+    // ------------------------------
+    // CSV Export
+    // ------------------------------
+    function csvEscape(val){
+      const s = String(val ?? "");
+      if(/[",\n\r;]/.test(s)) return `"${s.replaceAll('"','""')}"`;
+      return s;
+    }
+
+    function downloadTextFile(filename, text, mime="text/plain;charset=utf-8"){
+      const blob = new Blob([text], {type: mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 1500);
+    }
+
+    function exportWeekCSV(){
+      const client = getClient();
+      const clientName = client.name || "Cliente";
+      const rows = [];
+      rows.push([
+        "Cliente","Settimana_Dal","Settimana_Al","Giorno","Data","Slot","Orario","Tipo_Contenuto","Immobile","Stato"
+      ]);
+
+      const weekFrom = formatIT(currentMonday);
+      const weekTo = formatIT(addDays(currentMonday, 6));
+
+      DAYS.forEach((day, dayIndex) => {
+        const date = addDays(currentMonday, dayIndex);
+        for(let slot=1; slot<=4; slot++){
+          const time = day.times[slot-1];
+          const tipo = SLOT_KIND[slot];
+          const status = getSlotStatusForClient(client, currentMonday, day.key, slot) === "done" ? "FATTO" : "DA FARE";
+          let immobile = "";
+          if(slot === 1){
+            const assigned = propertyAssignedToDay(client, currentMonday, dayIndex);
+            immobile = assigned ? assigned.name : "";
+          }
+          rows.push([
+            clientName, weekFrom, weekTo, day.label, formatIT(date), slot, time, tipo, immobile, status
+          ]);
+        }
+      });
+
+      const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
+      const safeName = clientName.replaceAll(/[^\w\- ]+/g,"").trim().replaceAll(" ","_") || "Cliente";
+      downloadTextFile(`${safeName}_Calendario_${weekKey(currentMonday)}.csv`, csv, "text/csv;charset=utf-8");
+    }
+
+    function exportPlanCSV(){
+      const client = getClient();
+      const clientName = client.name || "Cliente";
+      const rows = [];
+      rows.push(["Cliente","Immobile","Giorno","Data","Orario_Slot1","Settimana_Dal","Settimana_Al","Stato_Slot1"]);
+
+      client.properties.forEach((name, idx) => {
+        const s = scheduleForProperty(client, idx);
+        const wkMon = startOfMonday(s.date);
+        const status = getSlotStatusForClient(client, wkMon, s.day.key, 1) === "done" ? "FATTO" : "DA FARE";
+        rows.push([
+          clientName, name, s.day.label, formatIT(s.date), s.slotTime, formatIT(wkMon), formatIT(addDays(wkMon, 6)), status
+        ]);
+      });
+
+      const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
+      const safeName = clientName.replaceAll(/[^\w\- ]+/g,"").trim().replaceAll(" ","_") || "Cliente";
+      downloadTextFile(`${safeName}_Pianificazione_Immobili.csv`, csv, "text/csv;charset=utf-8");
+    }
+
+    // ------------------------------
+    // Backup / Import cliente (JSON)
+    // ------------------------------
+    function exportClientBundle(){
+      const client = getClient();
+      const bundle = {
+        v: 3,
+        clientId: activeClientId,
+        name: client.name,
+        planStartMondayISO: client.planStartMondayISO,
+        properties: client.properties,
+        statusByWeek: client.statusByWeek
+      };
+      const json = JSON.stringify(bundle, null, 2);
+      const safeName = (client.name || "Cliente").replaceAll(/[^\w\- ]+/g,"").trim().replaceAll(" ","_") || "Cliente";
+      downloadTextFile(`${safeName}_backup.json`, json, "application/json;charset=utf-8");
+    }
+
+    function importClientBundle(){
+      const raw = prompt("Incolla qui il JSON di backup del cliente:");
+      if(!raw) return;
+      let b;
+      try{ b = JSON.parse(raw); } catch { alert("JSON non valido."); return; }
+      if(!b || typeof b !== "object") { alert("JSON non valido."); return; }
+
+      const newId = uid();
+      app.clients[newId] = {
+        name: String(b.name || "Cliente importato"),
+        planStartMondayISO: b.planStartMondayISO ? toISODate(startOfMonday(new Date(b.planStartMondayISO))) : toISODate(startOfMonday(new Date())),
+        properties: Array.isArray(b.properties) && b.properties.length ? b.properties.map(x=>String(x)) : defaultProperties(),
+        statusByWeek: (b.statusByWeek && typeof b.statusByWeek === "object") ? b.statusByWeek : {}
+      };
+      activeClientId = newId;
+      saveApp();
+      render();
+    }
+
+    // ------------------------------
+    // IMPORT CSV CLIENTI
+    // ------------------------------
+    function normalizeLine(s){
+      return String(s ?? "").replace(/\uFEFF/g,"").trim(); // rimuove BOM
+    }
+
+    function parseClientsFromCSV(text){
+      // Supporta:
+      // - CSV con intestazione "Cliente"
+      // - una colonna (uno per riga)
+      // - separatori , o ; (prendiamo la prima cella)
+      const lines = text.split(/\r?\n/).map(normalizeLine).filter(Boolean);
+      if(!lines.length) return [];
+
+      // se prima riga è header
+      const first = lines[0].toLowerCase();
+      const startIdx = (first === "cliente" || first.startsWith("cliente," ) || first.startsWith("cliente;" )) ? 1 : 0;
+
+      const names = [];
+      for(let i=startIdx;i<lines.length;i++){
+        const line = lines[i];
+        // prendo prima colonna, gestendo separatore , o ;
+        const firstCell = line.split(/[;,]/)[0].trim();
+        if(!firstCell) continue;
+        names.push(firstCell);
+      }
+      // dedup (case-insensitive)
+      const seen = new Set();
+      return names.filter(n=>{
+        const key = n.toLowerCase();
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function importClientsCSVFile(file){
+      const reader = new FileReader();
+      reader.onload = () => {
+        const text = String(reader.result || "");
+        const names = parseClientsFromCSV(text);
+
+        if(!names.length){
+          alert("CSV vuoto o non valido. Serve una colonna 'Cliente' o una lista di nomi (uno per riga).");
+          return;
+        }
+
+        // crea clienti senza duplicare nomi già presenti (case-insensitive)
+        const existingNames = new Set(Object.values(app.clients).map(c => (c.name||"").toLowerCase().trim()).filter(Boolean));
+        let created = 0;
+
+        names.forEach(name => {
+          const key = name.toLowerCase().trim();
+          if(existingNames.has(key)) return;
+
+          const id = uid();
+          app.clients[id] = {
+            name: name.trim(),
+            planStartMondayISO: toISODate(currentMonday),
+            properties: defaultProperties(),
+            statusByWeek: {}
+          };
+          existingNames.add(key);
+          created++;
+        });
+
+        if(created === 0){
+          alert("Nessun nuovo cliente creato: erano già presenti (stesso nome).");
+        }else{
+          activeClientId = Object.keys(app.clients).slice(-1)[0];
+          saveApp();
+          render();
+          alert(`Importati ${created} clienti ✅`);
+        }
+
+        // reset input file per permettere ricarica stesso file
+        elImportClientsCSV.value = "";
+      };
+
+      reader.onerror = () => {
+        alert("Errore nella lettura del file CSV.");
+      };
+
+      reader.readAsText(file, "utf-8");
+    }
+
+    // ------------------------------
+    // Events
+    // ------------------------------
+    elClientSelect.addEventListener("change", () => {
+      activeClientId = elClientSelect.value;
+      render();
+    });
+
+    elClientName.addEventListener("input", () => {
+      const client = getClient();
+      client.name = elClientName.value.trim();
+      saveApp();
+      renderClientSelect();
+      renderHeader();
+    });
+
+    elWeekDate.addEventListener("change", () => {
+      const chosen = elWeekDate.value ? new Date(elWeekDate.value) : new Date();
+      currentMonday = startOfMonday(chosen);
+      elWeekDate.value = toISODate(currentMonday);
+      render();
+    });
+
+    elPrevWeek.addEventListener("click", () => {
+      currentMonday = addWeeks(currentMonday, -1);
+      render();
+    });
+    elNextWeek.addEventListener("click", () => {
+      currentMonday = addWeeks(currentMonday, 1);
+      render();
+    });
+
+    elSetPlanStart.addEventListener("click", () => {
+      const client = getClient();
+      client.planStartMondayISO = toISODate(currentMonday);
+      saveApp();
+      render();
+    });
+
+    elAddClient.addEventListener("click", () => {
+      const name = prompt("Nome nuovo cliente:", `Cliente ${Object.keys(app.clients).length + 1}`) || "";
+      const id = uid();
+      app.clients[id] = {
+        name: name.trim() || `Cliente ${Object.keys(app.clients).length + 1}`,
+        planStartMondayISO: toISODate(currentMonday),
+        properties: defaultProperties(),
+        statusByWeek: {}
+      };
+      activeClientId = id;
+      saveApp();
+      render();
+    });
+
+    elDelClient.addEventListener("click", () => {
+      const ids = Object.keys(app.clients);
+      if(ids.length <= 1){
+        alert("Deve restare almeno 1 cliente.");
+        return;
+      }
+      const client = getClient();
+      const ok = confirm(`Eliminare il cliente "${client.name}"? (azione definitiva)`);
+      if(!ok) return;
+
+      delete app.clients[activeClientId];
+      activeClientId = Object.keys(app.clients)[0];
+      saveApp();
+      render();
+    });
+
+    elSaveProps.addEventListener("click", () => {
+      const client = getClient();
+      const lines = elPropsTextarea.value
+        .split("\n")
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if(lines.length === 0){
+        alert("Inserisci almeno 1 immobile (uno per riga).");
+        return;
+      }
+      client.properties = lines;
+      saveApp();
+      render();
+    });
+
+    elResetProps.addEventListener("click", () => {
+      const client = getClient();
+      client.properties = defaultProperties();
+      saveApp();
+      render();
+    });
+
+    elExportWeekCSV.addEventListener("click", exportWeekCSV);
+    elExportPlanCSV.addEventListener("click", exportPlanCSV);
+    elExportClientBundle.addEventListener("click", exportClientBundle);
+    elImportClientBundle.addEventListener("click", importClientBundle);
+
+    // CSV Import UI
+    elImportClientsBtn.addEventListener("click", () => elImportClientsCSV.click());
+    elImportClientsCSV.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      importClientsCSVFile(file);
+    });
+
+    // ------------------------------
+    // Utils
+    // ------------------------------
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // ------------------------------
+    // Init
+    // ------------------------------
+    loadApp();
+    render();
+  </script>
+</body>
+</html>
